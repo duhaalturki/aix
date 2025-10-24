@@ -1,97 +1,94 @@
 import streamlit as st
 import json
-import re
 import os
+import re
 
-# Set page config
+# --- Page Setup ---
 st.set_page_config(page_title="FinTech Readiness Assistant", page_icon="💼")
+st.title("💼 QDB FinTech Readiness Assistant")
+st.write(
+    "Upload your startup documents to receive regulatory gap analysis and QDB program recommendations."
+)
 
-# Load resource mapping JSON
-with open("resource_mapping.json", "r", encoding="utf-8") as f:
+# --- Load Resource Mapping Data ---
+# Streamlit Cloud uses the repo root as working directory
+RESOURCE_FILE = "resource_mapping.json"
+
+if not os.path.exists(RESOURCE_FILE):
+    st.error(f"Resource mapping file not found: {RESOURCE_FILE}")
+    st.stop()
+
+with open(RESOURCE_FILE, "r", encoding="utf-8") as f:
     resource_data = json.load(f)
-# Load QCB rulebook files (mock)
-qcb_rules = {}
-rule_files = ["qcb_aml_data_protection_regulation.md",
-              "qcb_fintech_licensing_pathways.md"]
 
-for file_name in rule_files:
-    file_path = os.path.join(os.path.dirname(__file__), file_name)
-    if os.path.exists(file_path):
-        with open(file_path, "r", encoding="utf-8") as f:
-            # Simple mapping: article title → text
-            matches = re.findall(r"(Article\s[\d\.]+:[^\n]+)", f.read())
-            for match in matches:
-                qcb_rules[match] = match  # For prototype, we just store the article names
-
-# Mock compliance weights for scoring
-compliance_weights = {
+# --- Mock Compliance Rules (from QCB docs) ---
+# Ideally, parse these from the qcb_*.md files
+compliance_rules = {
     "Licensing Strategy": 0.3,
     "Corporate Structure": 0.2,
     "QCB Engagement": 0.5,
     "AML Policy Drafting": 0.4,
     "Transaction Monitoring": 0.3,
-    "FATF Compliance": 0.3
+    "FATF Compliance": 0.3,
+    "Data Residency": 0.5,
+    "Compliance Officer": 0.4,
+    "Capital Requirement": 0.5,
+    "Source of Funds": 0.3,
 }
 
-# Streamlit UI
-st.title("💼 QDB FinTech Readiness Assistant")
-st.write("Upload your business plan to receive program recommendations and readiness score.")
-
-uploaded_file = st.file_uploader("📎 Upload your business plan (TXT/MD)", type=["txt","md"])
-
+# --- Helper Function: Keyword Extraction ---
 def extract_keywords(text):
-    keywords = []
-    for rule in compliance_weights.keys():
+    detected = []
+    for rule in compliance_rules.keys():
         if re.search(rule.lower(), text.lower()):
-            keywords.append(rule)
-    return keywords
+            detected.append(rule)
+    return detected
 
-def detect_gaps(text):
-    gaps = []
-    if "AWS" in text or "Ireland" in text or "Singapore" in text:
-        gaps.append("Data Residency Issue")
-    if "compliance officer" not in text.lower():
-        gaps.append("Missing Compliance Officer")
-    if re.search(r"QAR\s?5,?000,?000", text):
-        gaps.append("Capital Deficiency")
-    return gaps
+# --- File Upload Section ---
+uploaded_file = st.file_uploader(
+    "📎 Upload your startup document (TXT or PDF)", type=["txt"]
+)
 
 if uploaded_file:
-    # Read text
+    # Read uploaded text file
     text = uploaded_file.read().decode("utf-8", errors="ignore")
-    st.write("### 📄 Extracted Text Preview:")
+    st.write("### 📄 Document Preview:")
     st.text(text[:500])
 
-    # Extract focus areas & gaps
+    # Extract compliance keywords
     keywords = extract_keywords(text)
-    gaps = detect_gaps(text)
+    st.write(
+        "#### Detected Focus Areas:", ", ".join(keywords) if keywords else "None"
+    )
 
-    st.write("#### Detected Focus Areas:", ", ".join(keywords) if keywords else "None")
-    st.write("#### Detected Gaps:", ", ".join(gaps) if gaps else "None")
-
-    # Recommend programs / experts
+    # --- Match Programs ---
     recommendations = []
     for program in resource_data.get("qdb_programs", []):
         if any(focus in program["focus_areas"] for focus in keywords):
-            recommendations.append(f"Program: {program['program_name']}")
-
-    for expert in resource_data.get("compliance_experts", []):
-        for gap in gaps:
-            if gap == "Missing Compliance Officer" and "Compliance" in expert["specialization"]:
-                recommendations.append(f"Expert: {expert['name']} ({expert['contact']})")
+            recommendations.append(program)
 
     if recommendations:
-        st.write("### 🏛️ Recommendations:")
+        st.write("### 🏛️ Recommended QDB Programs:")
         for rec in recommendations:
-            st.markdown(f"- {rec}")
+            st.markdown(
+                f"**{rec['program_name']}** — Focus: {', '.join(rec['focus_areas'])} — Eligibility: {rec['eligibility']}"
+            )
     else:
-        st.warning("No direct match found. Try rephrasing your business plan focus areas.")
+        st.warning("No direct match found. Try rephrasing your startup document focus areas.")
 
-    # Calculate readiness score
-    score = sum(compliance_weights.get(k, 0) for k in keywords)
+    # --- Match Experts ---
+    experts = []
+    for expert in resource_data.get("compliance_experts", []):
+        if any(keyword in expert["specialization"] for keyword in keywords):
+            experts.append(expert)
+
+    if experts:
+        st.write("### 👩‍💼 Recommended Compliance Experts:")
+        for exp in experts:
+            st.markdown(f"**{exp['name']}** — Specialization: {exp['specialization']} — Contact: {exp['contact']}")
+
+    # --- Compute Readiness Score ---
+    score = sum(compliance_rules.get(k, 0) for k in keywords)
     readiness = round(score * 100, 2)
     st.metric("Regulatory Readiness Score", f"{readiness}/100")
-
-st.divider()
-st.caption("Prototype built by Duha — FinTech AI Readiness Assistant (Hackathon Edition)")
 
