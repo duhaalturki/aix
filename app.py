@@ -7,10 +7,8 @@ import os
 st.set_page_config(page_title="FinTech Readiness Assistant", page_icon="💼")
 
 # Load resource mapping JSON
-json_path = os.path.join(os.path.dirname(__file__), "resource_mapping.json")
-with open(json_path, "r", encoding="utf-8") as f:
+with open("resource_mapping.json", "r", encoding="utf-8") as f:
     resource_data = json.load(f)
-
 # Load QCB rulebook files (mock)
 qcb_rules = {}
 rule_files = ["qcb_aml_data_protection_regulation.md",
