@@ -92,5 +92,4 @@ if uploaded_file:
     readiness = round(score * 100, 2)
     st.metric("Regulatory Readiness Score", f"{readiness}/100")
 
-st.divider()
-st.caption("Prototype built by Duha — FinTech AI Readiness Assistant (Hackathon Edition)")
+
