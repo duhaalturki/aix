@@ -1,11 +1,14 @@
 import streamlit as st
 import json
 import re
+import os
 
 st.set_page_config(page_title="FinTech Readiness Assistant", page_icon="💼")
 
 # Load resource mapping data
-with open("resource_mapping.json") as f:
+json_path = os.path.join(os.path.dirname(__file__), "resource_mapping.json")
+
+with open(json_path, "r", encoding="utf-8") as f:
     resource_data = json.load(f)
 
 st.title("💼 QDB FinTech Readiness Assistant")
