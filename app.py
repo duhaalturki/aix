@@ -12,7 +12,7 @@ st.write(
 
 # --- Load Resource Mapping Data ---
 # Streamlit Cloud uses the repo root as working directory
-RESOURCE_FILE = "resource_mapping.json"
+RESOURCE_FILE = "resource_mapping_data.json"
 
 if not os.path.exists(RESOURCE_FILE):
     st.error(f"Resource mapping file not found: {RESOURCE_FILE}")
